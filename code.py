@@ -1,7 +1,6 @@
 
 # coding: utf-8
 
-# In[46]:
 
 
 import json
@@ -10,7 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# In[53]:
 
 
 #read data
@@ -51,27 +49,16 @@ from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
 
-# In[72]:
 
 
 
 sum(y_train[:4000])
 
 
-# In[91]:
-
 
 train_percent = 0.7
 train_cutoff = int(np.floor(train_percent*len(X) ) )
 
-
-# In[89]:
-
-
-
-
-
-# In[40]:
 
 
 #vectorization
@@ -79,9 +66,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 vectorizer = TfidfVectorizer(norm='l2',max_features = 6000)
 X_vec = vectorizer.fit_transform(X)
 X_vec.toarray()
-
-
-# In[66]:
 
 
 embeddings_dict = {}
@@ -94,7 +78,6 @@ with open("glove.twitter.27B/glove.twitter.27B.25d.txt", 'r') as f:
         embeddings_dict[word] = vector
 
 
-# In[75]:
 
 
 from keras.preprocessing.text import text_to_word_sequence
@@ -113,10 +96,9 @@ for l in X[:8000]:
             feature_vector = np.append(feature_vector, 
                                        np.array(embeddings_dict[word]))
         except KeyError:
-            # In the event that a word is not included in our dictionary skip that word
+            # skip the word if not in dictionary
             pass
-    # If the text has less then 20 words, fill remaining vector with
-    # zeros
+    # If the text has less then 20 words, fill remaining vector with zeros
     zeroes_to_add = array_length - len(feature_vector)
     feature_vector = np.append(feature_vector, 
                                np.zeros(zeroes_to_add)
@@ -130,31 +112,21 @@ for l in X[:8000]:
     
 
 
-# In[93]:
 
 
 len(X_embedding)
 
-
-# In[92]:
-
+#Try some simple dimentionality reduction methods
 
 from sklearn.svm import LinearSVC
 tfidf_model = LinearSVC()
 tfidf_model.fit(X_vec[0 : train_cutoff], y_train)
 tfidf_prediction = tfidf_model.predict(X_vec[train_cutoff : (len(X)+1)])
 
-
-# In[95]:
-
-
 from sklearn.svm import LinearSVC
 embed_model = LinearSVC()
 embed_model.fit(X_embedding[:7000], y_train[:7000])
 embed_pred = embed_model.predict(X_embedding[7001:])
-
-
-# In[96]:
 
 
 from sklearn.neural_network import MLPClassifier
@@ -164,8 +136,7 @@ clf.fit(X_vec[0 : train_cutoff], y_train)
 clf_pred = clf.predict(X_vec[train_cutoff : (len(X)+1)])
 
 
-# In[98]:
-
+# compare tf-idf and glove embedding
 
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import accuracy_score
@@ -186,9 +157,7 @@ results.loc['Embedding']['accuracy'] = accuracy_score(y_train[7000:7999],embed_p
 print(results)
 
 
-
-# In[147]:
-
+# compare dimentionality reduction methods
 
 results = pd.DataFrame(index = ['SVM','MLP'], 
           columns = ['Precision', 'Recall', 'F1 score', 'support','accuracy']
@@ -208,7 +177,6 @@ results.loc['MLP']['accuracy'] = accuracy_score(y_test,clf_pred)
 print(results)
 
 
-# In[99]:
 
 
 #building classifiers
@@ -221,7 +189,6 @@ plt.scatter(X_embedded_2d[:,0],X_embedded_2d[:,1], c = y_train[:200])
 plt.colorbar()
 
 
-# In[103]:
 
 
 from sklearn.manifold import MDS
@@ -230,9 +197,6 @@ X_embedded_2d = MDS(n_components=2).fit_transform(X_train_vec.toarray()[:80])
 plt.figure()
 plt.scatter(X_embedded_2d[:,0],X_embedded_2d[:,1], c = y_train[:80])
 plt.colorbar()
-
-
-# In[108]:
 
 
 from sklearn.manifold import MDS
@@ -244,7 +208,9 @@ ax = fig.gca(projection='3d')
 ax.scatter(X_embedded_3d[:,0], X_embedded_3d[:,1],X_embedded_3d[:,2], c=y_train[:200])
 
 
-# In[26]:
+
+#unsatisfying results from simple models above
+#build RNN 
 
 
 from __future__ import print_function
@@ -272,11 +238,8 @@ test_sequences = tokenizer.texts_to_sequences(X_test)
 test_padded = pad_sequences(test_sequences,maxlen=max_length)
 
 
-# In[119]:
-
-
 # fix random seed for reproducibility
-np.random.seed(7)
+np.random.seed(47)
 # load the dataset but only keep the top n words, zero the rest
 top_words = 6000
 # truncate and pad input sequences
@@ -301,9 +264,6 @@ print("Accuracy: %.2f%%" % (scores[1]*100))
 
 
 
-# In[94]:
-
-
 #Evaluating Accuracy and Loss of the model
 get_ipython().run_line_magic('matplotlib', 'inline')
 acc=history1.history['accuracy']
@@ -326,10 +286,6 @@ plt.plot(epochs,val_loss,'g',label='Testing Loss')
 plt.legend()
 plt.show()
 
-
-# In[80]:
-
-
 #Building the LSTM Model
 model_lstm = tf.keras.Sequential([
     tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(16)),
@@ -346,10 +302,7 @@ print("Accuracy: %.2f%%" % (scores[1]*100))
 
 
 
-# In[44]:
-
-
-#Building the CNN Model
+#try building a CNN Model 
 model_conv = tf.keras.Sequential([
     tf.keras.layers.Embedding(6000, 16, input_length=6000),
     tf.keras.layers.Conv1D(16,3,activation='relu'),
@@ -366,9 +319,6 @@ model_conv.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accurac
 num_epochs = 10
 history2=model_conv.fit(padded, y_train, batch_size=100,epochs=num_epochs,validation_data=(test_padded, y_test))
 
-
-
-# In[114]:
 
 
 #Evaluating Accuracy and Loss of the model
@@ -400,7 +350,6 @@ plt.show()
 
 
 
-# In[24]:
 
 
 from tensorflow.keras.preprocessing.sequence import pad_sequences
@@ -408,29 +357,16 @@ X_vec.shape
 X_vec_pad = pad_sequences(X_vec,maxlen=28619)
 
 
-# In[25]:
-
-
 X_vec.shape[0]
 X_vec_dense = X_vec.todense()
-
-
-# In[69]:
-
 
 X_vec_reshape = X_vec.toarray()[:, None,:]
 X_vec_reshape.shape
 
 
-# In[102]:
-
-
 X_train
 
-
-# In[17]:
-
-
+#get new validation set from a difference data source - Twitter
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import API
@@ -461,36 +397,27 @@ X_not_jokes = get_n_tweets('BBCBreaking',1000)
 y_not_jokes = np.repeat(0,1000)
 
 
-# In[18]:
 
 
 len(X_not_jokes)
 
-
-# In[20]:
 
 
 X_test.extend(X_not_jokes)
 y_test = np.concatenate((y_test, y_not_jokes))
 
 
-# In[21]:
-
 
 print(len(X_test),len(y_test))
 
 
-# In[23]:
-
+#is_joke = 1 or 0
 
 
 jokes = pd.DataFrame(list(zip(X_test, y_test)), columns =['Tweets', 'is_joke']) 
 
 from sklearn.utils import shuffle
 jokes = shuffle(jokes)
-
-
-# In[24]:
 
 
 def clean_tweet(text):
@@ -516,10 +443,6 @@ def clean_tweet(text):
 jokes['Tweets'] = [clean(l)for l in jokes['Tweets']]
 
 
-
-# In[25]:
-
-
 X_test = np.asarray(jokes['Tweets'])
 y_test = np.asarray(jokes['is_joke'])
 
@@ -538,8 +461,6 @@ test_padded_tweets = pad_sequences(test_sequences_tweets,maxlen=max_length)
 
 
 
-# In[34]:
-
 
 #vectorization
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -548,19 +469,10 @@ X_test_tfidf = vectorizer.fit_transform(X_test)
 X_test_tfidf.toarray()
 
 
-# In[35]:
 
 
 
 
-
-# In[171]:
-
-
-
-
-
-# In[45]:
 
 
 
